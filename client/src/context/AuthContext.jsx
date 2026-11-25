@@ -1,0 +1,112 @@
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { authApi } from '../api/authApi';
+import {
+  clearAccessToken,
+  setAccessToken,
+  setOnAuthFailure,
+} from '../api/fetchClient';
+
+const AuthContext = createContext(null);
+
+const DASHBOARD_PATHS = {
+  tenant: '/dashboard/tenant',
+  owner: '/dashboard/owner',
+  admin: '/dashboard/admin',
+};
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+
+  const getDashboardPath = useCallback(
+    (role) => DASHBOARD_PATHS[role] || '/',
+    []
+  );
+
+  useEffect(() => {
+    setOnAuthFailure(() => {
+      setUser(null);
+    });
+    return () => setOnAuthFailure(null);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function restoreSession() {
+      try {
+        const refreshData = await authApi.refresh();
+        if (refreshData?.accessToken) {
+          setAccessToken(refreshData.accessToken);
+          const meData = await authApi.getMe();
+          if (!cancelled) {
+            setUser(meData?.user || null);
+          }
+        }
+      } catch {
+        clearAccessToken();
+        if (!cancelled) {
+          setUser(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsAuthLoading(false);
+        }
+      }
+    }
+
+    restoreSession();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const login = useCallback(async (credentials) => {
+    const data = await authApi.login(credentials);
+    setAccessToken(data.accessToken);
+    setUser(data.user);
+    return data.user;
+  }, []);
+
+  const register = useCallback(async (payload) => {
+    const data = await authApi.register(payload);
+    setAccessToken(data.accessToken);
+    setUser(data.user);
+    return data.user;
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      await authApi.logout();
+    } catch {
+      // Clear local session state even if network logout fails
+    } finally {
+      clearAccessToken();
+      setUser(null);
+    }
+  }, []);
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated: Boolean(user),
+        isAuthLoading,
+        login,
+        register,
+        logout,
+        getDashboardPath,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) {
+    throw new Error('useAuth must be used inside an AuthProvider');
+  }
+  return ctx;
+}
