@@ -13,7 +13,7 @@ const REFRESH_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 const getRefreshCookieOptions = () => ({
   httpOnly: true,
-  sameSite: 'lax',
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   secure: process.env.NODE_ENV === 'production',
   path: '/api/auth',
   maxAge: REFRESH_COOKIE_MAX_AGE_MS,

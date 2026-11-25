@@ -15,6 +15,7 @@ const enquiryRoutes = require('./routes/enquiryRoutes');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 
 const app = express();
+app.set('trust proxy', 1);
 
 // Core middleware
 app.use(express.json({ limit: '10kb' }));
