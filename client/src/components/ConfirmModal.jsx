@@ -13,13 +13,19 @@ export default function ConfirmModal({
 }) {
   useEffect(() => {
     if (!isOpen) return undefined;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && !isLoading) {
         onCancel();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isOpen, isLoading, onCancel]);
 
   if (!isOpen) return null;
@@ -38,6 +44,7 @@ export default function ConfirmModal({
         className="surface-card modal-card modal-sm"
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="sheet-handle" />
         <div className="modal-header">
           <h2 id="confirm-modal-title" style={{ fontSize: 18 }}>
             {title}
@@ -53,11 +60,13 @@ export default function ConfirmModal({
           </button>
         </div>
 
-        <p style={{ margin: 0, fontSize: 14, color: 'var(--color-ink-secondary)' }}>
-          {description}
-        </p>
+        <div className="modal-scroll-body">
+          <p style={{ margin: 0, fontSize: 14, color: 'var(--color-ink-secondary)' }}>
+            {description}
+          </p>
+        </div>
 
-        <div className="modal-actions">
+        <div className="modal-footer-sticky">
           <button
             type="button"
             className="btn btn-secondary"

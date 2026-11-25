@@ -1,6 +1,6 @@
 :root {
   /* Surface & Canvas */
-  --color-canvas: #fafaf9;
+  --color-canvas: #faf9f6;
   --color-surface: #ffffff;
   --color-surface-subtle: #f3f4f6;
 
@@ -10,12 +10,12 @@
   --color-ink-muted: #6b7280;
 
   /* Borders & Dividers */
-  --color-border: #e5e7eb;
-  --color-border-strong: #d1d5db;
+  --color-border: #e7e5e4;
+  --color-border-strong: #d6d3d1;
 
   /* Brand Accent */
-  --color-accent: #0f5132;
-  --color-accent-hover: #0b3d26;
+  --color-accent: #0f4c3a;
+  --color-accent-hover: #0b3a2c;
   --color-accent-soft: #ecfdf5;
 
   /* Semantic Status */
@@ -31,11 +31,12 @@
   --font-display: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
   /* Radii & Elevation */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-sheet: 20px;
   --radius-full: 9999px;
   --shadow-xs: 0 1px 2px rgba(17, 24, 39, 0.04);
-  --shadow-sm: 0 2px 6px rgba(17, 24, 39, 0.06);
-  --shadow-md: 0 8px 24px rgba(17, 24, 39, 0.08);
+  --shadow-sm: 0 2px 8px rgba(17, 24, 39, 0.06);
+  --shadow-md: 0 12px 32px rgba(17, 24, 39, 0.12);
 }

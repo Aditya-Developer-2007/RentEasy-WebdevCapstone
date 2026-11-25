@@ -73,9 +73,7 @@ export default function TenantDashboardPage() {
     <main className="container page-section">
       <div className="dashboard-header">
         <div>
-          <h1 style={{ fontSize: 'clamp(22px, 2.6vw, 28px)' }}>
-            Welcome back, {user?.name}
-          </h1>
+          <h1>Welcome back, {user?.name}</h1>
           <p style={{ margin: '4px 0 0', color: 'var(--color-ink-secondary)' }}>
             Manage your shortlisted homes and track owner responses.
           </p>
@@ -108,7 +106,7 @@ export default function TenantDashboardPage() {
           className={`tab-btn ${activeTab === 'shortlist' ? 'active' : ''}`}
           onClick={() => setActiveTab('shortlist')}
         >
-          Shortlisted Properties ({savedItems.length})
+          Shortlisted ({savedItems.length})
         </button>
         <button
           type="button"
@@ -130,7 +128,7 @@ export default function TenantDashboardPage() {
           </div>
         ) : savedItems.length === 0 ? (
           <div className="surface-card center-state">
-            <h2 style={{ fontSize: 19 }}>No shortlisted properties yet</h2>
+            <h2>No shortlisted properties yet</h2>
             <p style={{ margin: 0, color: 'var(--color-ink-secondary)', maxWidth: 400 }}>
               Tap the heart icon on any verified listing to save it here for quick comparison.
             </p>
@@ -141,11 +139,11 @@ export default function TenantDashboardPage() {
         ) : (
           <div className="property-grid">
             {savedItems.map((entry) => (
-              <div key={entry._id} style={{ display: 'grid', gap: 8 }}>
+              <div key={entry._id} style={{ display: 'grid', gap: 8, minWidth: 0 }}>
                 <PropertyCard property={entry.property} />
                 <button
                   type="button"
-                  className="btn btn-secondary btn-sm"
+                  className="btn btn-secondary btn-full"
                   onClick={() => handleRemoveSaved(entry.property._id)}
                 >
                   Remove from Shortlist
@@ -156,7 +154,7 @@ export default function TenantDashboardPage() {
         )
       ) : (
         <div style={{ display: 'grid', gap: 16 }}>
-          <div className="pill-strip" role="group" aria-label="Filter enquiries by status">
+          <div className="pill-rail" role="group" aria-label="Filter enquiries by status">
             {STATUS_FILTERS.map((status) => (
               <button
                 key={status}
@@ -185,7 +183,7 @@ export default function TenantDashboardPage() {
             </div>
           ) : filteredEnquiries.length === 0 ? (
             <div className="surface-card center-state">
-              <h2 style={{ fontSize: 19 }}>No enquiries in this view</h2>
+              <h2>No enquiries in this view</h2>
               <p style={{ margin: 0, color: 'var(--color-ink-secondary)' }}>
                 Send an enquiry or schedule a visit from any property detail page.
               </p>
@@ -200,9 +198,9 @@ export default function TenantDashboardPage() {
                 return (
                   <article key={item._id} className="surface-card dashboard-item-card">
                     <div className="dashboard-item-row">
-                      <div style={{ display: 'flex', gap: 14, flex: 1 }}>
+                      <div className="dashboard-item-media-wrap">
                         {prop && (
-                          <Link to={`/properties/${prop._id}`}>
+                          <Link to={`/properties/${prop._id}`} style={{ flexShrink: 0 }}>
                             <img
                               className="item-thumb"
                               src={prop.images?.[0] || FALLBACK_IMAGE}
@@ -213,8 +211,8 @@ export default function TenantDashboardPage() {
                             />
                           </Link>
                         )}
-                        <div style={{ display: 'grid', gap: 6 }}>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        <div style={{ display: 'grid', gap: 6, minWidth: 0 }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                             <span className="badge badge-neutral">
                               {item.type === 'visit_request'
                                 ? 'Visit Request'
@@ -237,6 +235,7 @@ export default function TenantDashboardPage() {
                           {prop ? (
                             <Link
                               to={`/properties/${prop._id}`}
+                              className="wrap-anywhere"
                               style={{ fontWeight: 600, fontSize: 16 }}
                             >
                               {prop.title}
@@ -250,7 +249,7 @@ export default function TenantDashboardPage() {
                               style={{
                                 display: 'flex',
                                 flexWrap: 'wrap',
-                                gap: 12,
+                                gap: 10,
                                 fontSize: 13.5,
                                 color: 'var(--color-ink-secondary)',
                               }}
@@ -266,6 +265,7 @@ export default function TenantDashboardPage() {
                           )}
 
                           <p
+                            className="wrap-anywhere"
                             style={{
                               margin: '4px 0 0',
                               fontSize: 14,
@@ -278,7 +278,10 @@ export default function TenantDashboardPage() {
                       </div>
 
                       {item.owner && (
-                        <div style={{ fontSize: 13, color: 'var(--color-ink-muted)' }}>
+                        <div
+                          className="wrap-anywhere"
+                          style={{ fontSize: 13, color: 'var(--color-ink-muted)' }}
+                        >
                           <div>Owner: {item.owner.name}</div>
                           <div>{item.owner.email}</div>
                           {item.owner.phone && <div>{item.owner.phone}</div>}

@@ -149,11 +149,19 @@ export default function LoginPage() {
                   key={acc.email}
                   type="button"
                   className="btn btn-secondary btn-sm"
-                  style={{ justifyContent: 'space-between' }}
+                  style={{
+                    justifyContent: 'space-between',
+                    height: 'auto',
+                    paddingTop: 8,
+                    paddingBottom: 8,
+                  }}
                   onClick={() => fillDemo(acc)}
                 >
                   <span>{acc.label}</span>
-                  <span style={{ color: 'var(--color-ink-muted)', fontWeight: 400 }}>
+                  <span
+                    className="wrap-anywhere"
+                    style={{ color: 'var(--color-ink-muted)', fontWeight: 400 }}
+                  >
                     {acc.email}
                   </span>
                 </button>

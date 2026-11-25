@@ -80,11 +80,17 @@ export default function PropertyFormModal({
 
   useEffect(() => {
     if (!isOpen) return undefined;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && !isSubmitting) onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isOpen, isSubmitting, onClose]);
 
   if (!isOpen) return null;
@@ -231,15 +237,16 @@ export default function PropertyFormModal({
         className="surface-card modal-card modal-lg"
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="sheet-handle" />
         <div className="modal-header">
           <div>
-            <h2 id="property-form-title" style={{ fontSize: 20 }}>
+            <h2 id="property-form-title" style={{ fontSize: 19 }}>
               {isEdit ? 'Edit Property Listing' : 'List a New Property'}
             </h2>
             <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--color-ink-muted)' }}>
               {isEdit
-                ? 'Update listing specifications, photos, or availability.'
-                : 'New listings are submitted to Admin review before going public.'}
+                ? 'Update listing details, photos, or availability.'
+                : 'New listings go to Admin review before publishing.'}
             </p>
           </div>
           <button
@@ -253,57 +260,62 @@ export default function PropertyFormModal({
           </button>
         </div>
 
-        {isEdit && property?.approvalStatus === 'rejected' && (
-          <div className="alert alert-info">
-            <AlertCircleIcon size={16} />
-            <span>
-              Saving changes to a rejected listing will reset its status to{' '}
-              <strong>pending</strong> for Admin re-review.
-            </span>
-          </div>
-        )}
+        <form
+          id="property-form"
+          onSubmit={handleSubmit}
+          className="modal-scroll-body"
+          noValidate
+        >
+          {isEdit && property?.approvalStatus === 'rejected' && (
+            <div className="alert alert-info">
+              <AlertCircleIcon size={16} />
+              <span>
+                Saving changes to a rejected listing resets its status to{' '}
+                <strong>pending</strong> for Admin re-review.
+              </span>
+            </div>
+          )}
 
-        {serverError && (
-          <div className="alert alert-error">
-            <AlertCircleIcon size={16} />
-            <span>{serverError}</span>
-          </div>
-        )}
+          {serverError && (
+            <div className="alert alert-error">
+              <AlertCircleIcon size={16} />
+              <span>{serverError}</span>
+            </div>
+          )}
 
-        <form onSubmit={handleSubmit} className="modal-form-body" noValidate>
+          <div className="field">
+            <label className="field-label" htmlFor="prop-title">
+              Listing Title
+            </label>
+            <input
+              id="prop-title"
+              type="text"
+              className={`input ${errors.title ? 'input-error' : ''}`}
+              placeholder="e.g., Sunlit 2BHK Apartment Near Saket Metro"
+              value={form.title}
+              onChange={(e) => updateField('title', e.target.value)}
+            />
+            {errors.title && <span className="field-error">{errors.title}</span>}
+          </div>
+
+          <div className="field">
+            <label className="field-label" htmlFor="prop-desc">
+              Description
+            </label>
+            <textarea
+              id="prop-desc"
+              rows={3}
+              className={`textarea ${errors.description ? 'input-error' : ''}`}
+              placeholder="Describe natural light, metro proximity, furnishings, and lease terms…"
+              value={form.description}
+              onChange={(e) => updateField('description', e.target.value)}
+            />
+            {errors.description && (
+              <span className="field-error">{errors.description}</span>
+            )}
+          </div>
+
           <div className="form-grid-2">
-            <div className="field" style={{ gridColumn: '1 / -1' }}>
-              <label className="field-label" htmlFor="prop-title">
-                Listing Title
-              </label>
-              <input
-                id="prop-title"
-                type="text"
-                className={`input ${errors.title ? 'input-error' : ''}`}
-                placeholder="e.g., Sunlit 2BHK Apartment Near Saket Metro"
-                value={form.title}
-                onChange={(e) => updateField('title', e.target.value)}
-              />
-              {errors.title && <span className="field-error">{errors.title}</span>}
-            </div>
-
-            <div className="field" style={{ gridColumn: '1 / -1' }}>
-              <label className="field-label" htmlFor="prop-desc">
-                Description
-              </label>
-              <textarea
-                id="prop-desc"
-                rows={3}
-                className={`textarea ${errors.description ? 'input-error' : ''}`}
-                placeholder="Describe natural light, neighborhood connectivity, furnishings, and lease preferences…"
-                value={form.description}
-                onChange={(e) => updateField('description', e.target.value)}
-              />
-              {errors.description && (
-                <span className="field-error">{errors.description}</span>
-              )}
-            </div>
-
             <div className="field">
               <label className="field-label" htmlFor="prop-type">
                 Property Type
@@ -337,7 +349,9 @@ export default function PropertyFormModal({
               />
               {errors.areaSqFt && <span className="field-error">{errors.areaSqFt}</span>}
             </div>
+          </div>
 
+          <div className="form-pair-xs">
             <div className="field">
               <label className="field-label" htmlFor="prop-rent">
                 Monthly Rent (₹)
@@ -356,7 +370,7 @@ export default function PropertyFormModal({
 
             <div className="field">
               <label className="field-label" htmlFor="prop-deposit">
-                Security Deposit (₹)
+                Deposit (₹)
               </label>
               <input
                 id="prop-deposit"
@@ -369,10 +383,12 @@ export default function PropertyFormModal({
               />
               {errors.deposit && <span className="field-error">{errors.deposit}</span>}
             </div>
+          </div>
 
+          <div className="form-pair-xs">
             <div className="field">
               <label className="field-label" htmlFor="prop-bedrooms">
-                Bedrooms (0 for Studio)
+                Bedrooms (0=Studio)
               </label>
               <input
                 id="prop-bedrooms"
@@ -403,7 +419,9 @@ export default function PropertyFormModal({
                 <span className="field-error">{errors.bathrooms}</span>
               )}
             </div>
+          </div>
 
+          <div className="form-grid-2">
             <div className="field">
               <label className="field-label" htmlFor="prop-loc-area">
                 Area / Locality
@@ -456,6 +474,7 @@ export default function PropertyFormModal({
               <input
                 id="prop-loc-pincode"
                 type="text"
+                inputMode="numeric"
                 maxLength={6}
                 className={`input ${errors.pincode ? 'input-error' : ''}`}
                 placeholder="110068"
@@ -495,7 +514,7 @@ export default function PropertyFormModal({
                   </button>
                 ))}
             </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+            <div className="image-url-row" style={{ marginTop: 6 }}>
               <input
                 type="text"
                 className="input"
@@ -511,7 +530,7 @@ export default function PropertyFormModal({
               />
               <button
                 type="button"
-                className="btn btn-secondary btn-sm"
+                className="btn btn-secondary"
                 onClick={handleAddCustomAmenity}
               >
                 Add
@@ -521,7 +540,7 @@ export default function PropertyFormModal({
 
           <div className="field">
             <span className="field-label">Property Images (up to 8 URLs)</span>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div className="image-url-row">
               <input
                 type="url"
                 className="input"
@@ -531,7 +550,7 @@ export default function PropertyFormModal({
               />
               <button
                 type="button"
-                className="btn btn-secondary btn-sm"
+                className="btn btn-secondary"
                 onClick={handleAddImage}
               >
                 Add URL
@@ -565,6 +584,7 @@ export default function PropertyFormModal({
                 alignItems: 'center',
                 gap: 8,
                 fontSize: 14,
+                minHeight: 44,
                 cursor: 'pointer',
               }}
             >
@@ -576,29 +596,30 @@ export default function PropertyFormModal({
               <span>Listing is currently available for rent</span>
             </label>
           )}
-
-          <div className="modal-actions">
-            <button
-              type="button"
-              className="btn btn-secondary"
-              disabled={isSubmitting}
-              onClick={onClose}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={isSubmitting}
-            >
-              {isSubmitting
-                ? 'Saving…'
-                : isEdit
-                ? 'Save Changes'
-                : 'Submit Listing'}
-            </button>
-          </div>
         </form>
+
+        <div className="modal-footer-sticky">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={isSubmitting}
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="property-form"
+            className="btn btn-primary"
+            disabled={isSubmitting}
+          >
+            {isSubmitting
+              ? 'Saving…'
+              : isEdit
+              ? 'Save Changes'
+              : 'Publish Listing'}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -153,9 +153,7 @@ export default function AdminDashboardPage() {
     <main className="container page-section">
       <div className="dashboard-header">
         <div>
-          <h1 style={{ fontSize: 'clamp(22px, 2.6vw, 28px)' }}>
-            Admin Moderation &amp; Analytics
-          </h1>
+          <h1>Admin Moderation &amp; Analytics</h1>
           <p style={{ margin: '4px 0 0', color: 'var(--color-ink-secondary)' }}>
             Review owner submissions and monitor area-wise rental market trends.
           </p>
@@ -196,7 +194,7 @@ export default function AdminDashboardPage() {
           className={`tab-btn ${activeTab === 'moderation' ? 'active' : ''}`}
           onClick={() => setActiveTab('moderation')}
         >
-          Listing Moderation Queue ({summary.pending})
+          Moderation Queue ({summary.pending})
         </button>
         <button
           type="button"
@@ -211,7 +209,7 @@ export default function AdminDashboardPage() {
 
       {activeTab === 'moderation' ? (
         <div style={{ display: 'grid', gap: 16 }}>
-          <div className="pill-strip">
+          <div className="pill-rail">
             {QUEUE_STATUSES.map((status) => (
               <button
                 key={status}
@@ -237,7 +235,7 @@ export default function AdminDashboardPage() {
             </div>
           ) : queueItems.length === 0 ? (
             <div className="surface-card center-state">
-              <h2 style={{ fontSize: 19 }}>No {queueStatus} listings</h2>
+              <h2>No {queueStatus} listings</h2>
               <p style={{ margin: 0, color: 'var(--color-ink-secondary)' }}>
                 The {queueStatus} moderation queue is currently clear.
               </p>
@@ -252,7 +250,7 @@ export default function AdminDashboardPage() {
                   return (
                     <article key={prop._id} className="surface-card dashboard-item-card">
                       <div className="dashboard-item-row">
-                        <div style={{ display: 'flex', gap: 14, flex: 1 }}>
+                        <div className="dashboard-item-media-wrap">
                           <img
                             className="item-thumb"
                             src={prop.images?.[0] || FALLBACK_IMAGE}
@@ -261,8 +259,8 @@ export default function AdminDashboardPage() {
                               e.currentTarget.src = FALLBACK_IMAGE;
                             }}
                           />
-                          <div style={{ display: 'grid', gap: 6 }}>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                          <div style={{ display: 'grid', gap: 6, minWidth: 0 }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                               <span
                                 className={`badge badge-${prop.approvalStatus}`}
                                 style={{ textTransform: 'capitalize' }}
@@ -273,23 +271,24 @@ export default function AdminDashboardPage() {
                                 {formatPropertyType(prop.propertyType)}
                               </span>
                               <span className="badge badge-neutral">
-                                Submitted {formatDate(prop.createdAt)}
+                                {formatDate(prop.createdAt)}
                               </span>
                             </div>
 
                             <h3 style={{ fontSize: 16 }}>{prop.title}</h3>
 
                             <div
+                              className="wrap-anywhere"
                               style={{
                                 display: 'flex',
-                                flexWrap: 'wrap',
-                                gap: 12,
+                                alignItems: 'flex-start',
+                                gap: 5,
                                 fontSize: 13.5,
                                 color: 'var(--color-ink-secondary)',
                               }}
                             >
-                              <span className="spec-item">
-                                <MapPinIcon size={14} />
+                              <MapPinIcon size={14} />
+                              <span>
                                 {prop.location?.address}, {prop.location?.area},{' '}
                                 {prop.location?.city} ({prop.location?.pincode})
                               </span>
@@ -300,7 +299,7 @@ export default function AdminDashboardPage() {
                               style={{
                                 display: 'flex',
                                 flexWrap: 'wrap',
-                                gap: 14,
+                                gap: 12,
                                 fontSize: 13.5,
                                 fontWeight: 500,
                               }}
@@ -324,7 +323,10 @@ export default function AdminDashboardPage() {
                             )}
 
                             {prop.owner && (
-                              <div style={{ fontSize: 12.5, color: 'var(--color-ink-muted)' }}>
+                              <div
+                                className="wrap-anywhere"
+                                style={{ fontSize: 12.5, color: 'var(--color-ink-muted)' }}
+                              >
                                 Owner: {prop.owner.name} ({prop.owner.email}
                                 {prop.owner.phone ? ` · ${prop.owner.phone}` : ''})
                               </div>
@@ -332,7 +334,7 @@ export default function AdminDashboardPage() {
                           </div>
                         </div>
 
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        <div className="card-action-grid">
                           {prop.approvalStatus !== 'approved' && (
                             <button
                               type="button"
@@ -400,13 +402,13 @@ export default function AdminDashboardPage() {
                           {rejectionError && (
                             <span className="field-error">{rejectionError}</span>
                           )}
-                          <div style={{ display: 'flex', gap: 8 }}>
+                          <div className="card-action-grid">
                             <button
                               type="submit"
                               className="btn btn-danger btn-sm"
                               disabled={isBusy}
                             >
-                              {isBusy ? 'Submitting…' : 'Confirm Rejection'}
+                              {isBusy ? 'Submitting…' : 'Confirm Reject'}
                             </button>
                             <button
                               type="button"
@@ -427,7 +429,7 @@ export default function AdminDashboardPage() {
                 <nav className="pagination" aria-label="Moderation queue pagination">
                   <button
                     type="button"
-                    className="btn btn-secondary btn-sm"
+                    className="btn btn-secondary"
                     disabled={queuePage <= 1}
                     onClick={() => setQueuePage((p) => p - 1)}
                   >
@@ -438,7 +440,7 @@ export default function AdminDashboardPage() {
                   </span>
                   <button
                     type="button"
-                    className="btn btn-secondary btn-sm"
+                    className="btn btn-secondary"
                     disabled={queuePage >= queuePagination.totalPages}
                     onClick={() => setQueuePage((p) => p + 1)}
                   >
@@ -450,7 +452,7 @@ export default function AdminDashboardPage() {
           )}
         </div>
       ) : (
-        <div style={{ display: 'grid', gap: 20 }}>
+        <div style={{ display: 'grid', gap: 18 }}>
           <div
             className="surface-card"
             style={{
@@ -462,15 +464,14 @@ export default function AdminDashboardPage() {
               gap: 12,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="field" style={{ flex: '1 1 220px', maxWidth: 320 }}>
               <label className="field-label" htmlFor="analytics-city">
-                Filter by City:
+                Filter by City
               </label>
               <input
                 id="analytics-city"
                 type="text"
                 className="input"
-                style={{ width: 200 }}
                 placeholder="e.g., Delhi, Bengaluru"
                 value={cityFilter}
                 onChange={(e) => setCityFilter(e.target.value)}
@@ -483,6 +484,7 @@ export default function AdminDashboardPage() {
                 alignItems: 'center',
                 gap: 8,
                 fontSize: 13.5,
+                minHeight: 44,
                 cursor: 'pointer',
               }}
             >
@@ -499,16 +501,16 @@ export default function AdminDashboardPage() {
             <div className="skeleton" style={{ height: 240 }} />
           ) : areaStats.length === 0 ? (
             <div className="surface-card center-state">
-              <h2 style={{ fontSize: 19 }}>No analytics data available</h2>
+              <h2>No analytics data available</h2>
               <p style={{ margin: 0, color: 'var(--color-ink-secondary)' }}>
                 Try clearing the city filter or including unapproved listings.
               </p>
             </div>
           ) : (
             <>
-              <section className="surface-card" style={{ padding: 22, display: 'grid', gap: 16 }}>
+              <section className="surface-card" style={{ padding: 20, display: 'grid', gap: 16 }}>
                 <div>
-                  <h2 style={{ fontSize: 18 }}>Area-Wise Average Monthly Rent</h2>
+                  <h2>Area-Wise Average Monthly Rent</h2>
                   <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--color-ink-muted)' }}>
                     Computed live via MongoDB Aggregation Pipeline ($match → $group → $project → $sort)
                   </p>
@@ -522,19 +524,27 @@ export default function AdminDashboardPage() {
                     );
                     return (
                       <div key={`${row.area}-${row.city}`} className="bar-row">
-                        <div>
-                          <div style={{ fontWeight: 600 }}>{row.area}</div>
-                          <div style={{ fontSize: 12, color: 'var(--color-ink-muted)' }}>
-                            {row.city}
+                        <div className="bar-row-meta">
+                          <div>
+                            <div style={{ fontWeight: 600 }}>{row.area}</div>
+                            <div style={{ fontSize: 12, color: 'var(--color-ink-muted)' }}>
+                              {row.city}
+                            </div>
+                          </div>
+                          <div className="bar-row-meta-mobile-rent tabular-nums">
+                            <strong>{formatINR(row.avgRent)}</strong>
+                            <span style={{ color: 'var(--color-ink-muted)', fontSize: 12 }}>
+                              {' '}
+                              ({row.totalListings})
+                            </span>
                           </div>
                         </div>
+
                         <div className="bar-track" aria-hidden="true">
-                          <div
-                            className="bar-fill"
-                            style={{ width: `${widthPct}%` }}
-                          />
+                          <div className="bar-fill" style={{ width: `${widthPct}%` }} />
                         </div>
-                        <div className="tabular-nums" style={{ textAlign: 'right' }}>
+
+                        <div className="bar-row-desktop-rent tabular-nums">
                           <strong>{formatINR(row.avgRent)}</strong>
                           <span style={{ color: 'var(--color-ink-muted)', fontSize: 12 }}>
                             {' '}
@@ -547,37 +557,101 @@ export default function AdminDashboardPage() {
                 </div>
               </section>
 
-              <section className="surface-card" style={{ padding: 18 }}>
-                <div className="table-scroll">
-                  <table className="data-table tabular-nums">
-                    <thead>
-                      <tr>
-                        <th>Area</th>
-                        <th>City</th>
-                        <th>Avg Rent</th>
-                        <th>Min Rent</th>
-                        <th>Max Rent</th>
-                        <th>Total Listings</th>
-                        <th>Available</th>
-                        <th>Avg Bedrooms</th>
+              {/* Desktop Breakdown Table (>= 768px) */}
+              <section className="surface-card analytics-table-wrap" style={{ padding: 18 }}>
+                <table className="data-table tabular-nums">
+                  <thead>
+                    <tr>
+                      <th>Area</th>
+                      <th>City</th>
+                      <th>Avg Rent</th>
+                      <th>Min Rent</th>
+                      <th>Max Rent</th>
+                      <th>Total Listings</th>
+                      <th>Available</th>
+                      <th>Avg Bedrooms</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {areaStats.map((row) => (
+                      <tr key={`${row.area}-${row.city}-row`}>
+                        <td style={{ fontWeight: 600 }}>{row.area}</td>
+                        <td>{row.city}</td>
+                        <td style={{ fontWeight: 600 }}>{formatINR(row.avgRent)}</td>
+                        <td>{formatINR(row.minRent)}</td>
+                        <td>{formatINR(row.maxRent)}</td>
+                        <td>{row.totalListings}</td>
+                        <td>{row.availableListings}</td>
+                        <td>{row.avgBedrooms}</td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {areaStats.map((row) => (
-                        <tr key={`${row.area}-${row.city}-row`}>
-                          <td style={{ fontWeight: 600 }}>{row.area}</td>
-                          <td>{row.city}</td>
-                          <td style={{ fontWeight: 600 }}>{formatINR(row.avgRent)}</td>
-                          <td>{formatINR(row.minRent)}</td>
-                          <td>{formatINR(row.maxRent)}</td>
-                          <td>{row.totalListings}</td>
-                          <td>{row.availableListings}</td>
-                          <td>{row.avgBedrooms}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                    ))}
+                  </tbody>
+                </table>
+              </section>
+
+              {/* Mobile Stacked Metric Cards (< 768px) */}
+              <section className="analytics-mobile-cards" aria-label="Area rent breakdown">
+                {areaStats.map((row) => (
+                  <article
+                    key={`${row.area}-${row.city}-card`}
+                    className="surface-card"
+                    style={{ padding: 16, display: 'grid', gap: 12 }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'baseline',
+                        borderBottom: '1px solid var(--color-border)',
+                        paddingBottom: 8,
+                      }}
+                    >
+                      <strong style={{ fontSize: 16 }}>{row.area}</strong>
+                      <span style={{ fontSize: 13, color: 'var(--color-ink-muted)' }}>
+                        {row.city}
+                      </span>
+                    </div>
+
+                    <div className="analytics-metric-grid tabular-nums">
+                      <div>
+                        <div style={{ fontSize: 11.5, color: 'var(--color-ink-muted)' }}>
+                          Avg Rent
+                        </div>
+                        <div style={{ fontWeight: 700 }}>{formatINR(row.avgRent)}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11.5, color: 'var(--color-ink-muted)' }}>
+                          Min Rent
+                        </div>
+                        <div style={{ fontWeight: 600 }}>{formatINR(row.minRent)}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11.5, color: 'var(--color-ink-muted)' }}>
+                          Max Rent
+                        </div>
+                        <div style={{ fontWeight: 600 }}>{formatINR(row.maxRent)}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11.5, color: 'var(--color-ink-muted)' }}>
+                          Listings
+                        </div>
+                        <div style={{ fontWeight: 600 }}>{row.totalListings}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11.5, color: 'var(--color-ink-muted)' }}>
+                          Available
+                        </div>
+                        <div style={{ fontWeight: 600 }}>{row.availableListings}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11.5, color: 'var(--color-ink-muted)' }}>
+                          Avg BHK
+                        </div>
+                        <div style={{ fontWeight: 600 }}>{row.avgBedrooms}</div>
+                      </div>
+                    </div>
+                  </article>
+                ))}
               </section>
             </>
           )}

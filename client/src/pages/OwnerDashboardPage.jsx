@@ -157,7 +157,7 @@ export default function OwnerDashboardPage() {
     <main className="container page-section">
       <div className="dashboard-header">
         <div>
-          <h1 style={{ fontSize: 'clamp(22px, 2.6vw, 28px)' }}>Owner Workspace</h1>
+          <h1>Owner Workspace</h1>
           <p style={{ margin: '4px 0 0', color: 'var(--color-ink-secondary)' }}>
             Manage your rental listings, availability, and tenant visit requests.
           </p>
@@ -233,7 +233,7 @@ export default function OwnerDashboardPage() {
         </div>
       ) : activeTab === 'properties' ? (
         <div style={{ display: 'grid', gap: 16 }}>
-          <div className="pill-strip">
+          <div className="pill-rail">
             {PROPERTY_FILTERS.map((status) => (
               <button
                 key={status}
@@ -249,7 +249,7 @@ export default function OwnerDashboardPage() {
 
           {filteredProperties.length === 0 ? (
             <div className="surface-card center-state">
-              <h2 style={{ fontSize: 19 }}>No properties in this category</h2>
+              <h2>No properties in this category</h2>
               <p style={{ margin: 0, color: 'var(--color-ink-secondary)' }}>
                 Create a new property listing to reach verified tenants.
               </p>
@@ -259,7 +259,7 @@ export default function OwnerDashboardPage() {
               {filteredProperties.map((prop) => (
                 <article key={prop._id} className="surface-card dashboard-item-card">
                   <div className="dashboard-item-row">
-                    <div style={{ display: 'flex', gap: 14, flex: 1 }}>
+                    <div className="dashboard-item-media-wrap">
                       <img
                         className="item-thumb"
                         src={prop.images?.[0] || FALLBACK_IMAGE}
@@ -268,8 +268,8 @@ export default function OwnerDashboardPage() {
                           e.currentTarget.src = FALLBACK_IMAGE;
                         }}
                       />
-                      <div style={{ display: 'grid', gap: 6 }}>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      <div style={{ display: 'grid', gap: 6, minWidth: 0 }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                           <span
                             className={`badge badge-${prop.approvalStatus}`}
                             style={{ textTransform: 'capitalize' }}
@@ -294,7 +294,7 @@ export default function OwnerDashboardPage() {
                           style={{
                             display: 'flex',
                             flexWrap: 'wrap',
-                            gap: 12,
+                            gap: 10,
                             fontSize: 13.5,
                             color: 'var(--color-ink-secondary)',
                           }}
@@ -317,14 +317,14 @@ export default function OwnerDashboardPage() {
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    <div className="card-action-grid">
                       <button
                         type="button"
                         className="btn btn-secondary btn-sm"
                         disabled={togglingAvailId === prop._id}
                         onClick={() => handleToggleAvailability(prop)}
                       >
-                        {prop.isAvailable ? 'Mark Unavailable' : 'Mark Available'}
+                        {prop.isAvailable ? 'Set Unavailable' : 'Set Available'}
                       </button>
                       <Link
                         to={`/properties/${prop._id}`}
@@ -386,7 +386,7 @@ export default function OwnerDashboardPage() {
         </div>
       ) : (
         <div style={{ display: 'grid', gap: 16 }}>
-          <div className="pill-strip">
+          <div className="pill-rail">
             {ENQUIRY_FILTERS.map((status) => (
               <button
                 key={status}
@@ -402,7 +402,7 @@ export default function OwnerDashboardPage() {
 
           {filteredEnquiries.length === 0 ? (
             <div className="surface-card center-state">
-              <h2 style={{ fontSize: 19 }}>No enquiries in this category</h2>
+              <h2>No enquiries in this category</h2>
               <p style={{ margin: 0, color: 'var(--color-ink-secondary)' }}>
                 Tenant enquiries and visit requests will appear here.
               </p>
@@ -414,8 +414,8 @@ export default function OwnerDashboardPage() {
                 return (
                   <article key={enq._id} className="surface-card dashboard-item-card">
                     <div className="dashboard-item-row">
-                      <div style={{ display: 'grid', gap: 6, flex: 1 }}>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      <div style={{ display: 'grid', gap: 6, flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                           <span className="badge badge-neutral">
                             {enq.type === 'visit_request'
                               ? 'Visit Request'
@@ -435,7 +435,7 @@ export default function OwnerDashboardPage() {
                           )}
                         </div>
 
-                        <div style={{ fontWeight: 600, fontSize: 16 }}>
+                        <div className="wrap-anywhere" style={{ fontWeight: 600, fontSize: 16 }}>
                           {enq.property?.title || 'Property'}
                         </div>
 
@@ -446,13 +446,16 @@ export default function OwnerDashboardPage() {
                           </div>
                         )}
 
-                        <p style={{ margin: '4px 0 0', fontSize: 14 }}>
+                        <p className="wrap-anywhere" style={{ margin: '4px 0 0', fontSize: 14 }}>
                           “{enq.message}”
                         </p>
                       </div>
 
                       {enq.tenant && (
-                        <div style={{ fontSize: 13, color: 'var(--color-ink-secondary)' }}>
+                        <div
+                          className="wrap-anywhere"
+                          style={{ fontSize: 13, color: 'var(--color-ink-secondary)' }}
+                        >
                           <div style={{ fontWeight: 600 }}>{enq.tenant.name}</div>
                           <div>{enq.tenant.email}</div>
                           {enq.tenant.phone && <div>{enq.tenant.phone}</div>}
@@ -490,7 +493,7 @@ export default function OwnerDashboardPage() {
                           }))
                         }
                       />
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      <div className="card-action-grid">
                         <button
                           type="button"
                           className="btn btn-primary btn-sm"

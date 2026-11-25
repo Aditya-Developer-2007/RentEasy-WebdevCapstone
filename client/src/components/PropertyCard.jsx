@@ -25,7 +25,9 @@ export default function PropertyCard({ property }) {
     e.stopPropagation();
 
     if (!isAuthenticated) {
-      navigate('/login', { state: { from: { pathname: `/properties/${property._id}` } } });
+      navigate('/login', {
+        state: { from: { pathname: `/properties/${property._id}` } },
+      });
       return;
     }
 
@@ -61,7 +63,7 @@ export default function PropertyCard({ property }) {
             disabled={isToggling}
             onClick={handleToggleSave}
           >
-            <HeartIcon size={17} filled={saved} />
+            <HeartIcon size={18} filled={saved} />
           </button>
         )}
       </Link>
@@ -69,7 +71,13 @@ export default function PropertyCard({ property }) {
       <Link to={`/properties/${property._id}`} className="property-card-body">
         <div className="property-card-rent tabular-nums">
           {formatINR(property.rent)}
-          <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--color-ink-muted)' }}>
+          <span
+            style={{
+              fontSize: 13,
+              fontWeight: 400,
+              color: 'var(--color-ink-muted)',
+            }}
+          >
             /mo
           </span>
         </div>
@@ -82,6 +90,16 @@ export default function PropertyCard({ property }) {
             {property.location?.area}, {property.location?.city}
           </span>
         </div>
+
+        {property.amenities?.length > 0 && (
+          <div className="pill-strip" style={{ gap: 6 }}>
+            {property.amenities.slice(0, 3).map((item) => (
+              <span key={item} className="badge badge-neutral">
+                {item}
+              </span>
+            ))}
+          </div>
+        )}
 
         <div className="property-card-specs tabular-nums">
           <span className="spec-item">

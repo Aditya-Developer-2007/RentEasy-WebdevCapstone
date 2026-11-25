@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { enquiryApi } from '../api/enquiryApi';
 import { propertyApi } from '../api/propertyApi';
 import {
@@ -15,6 +15,7 @@ import {
 } from '../components/Icons';
 import { useAuth } from '../context/AuthContext';
 import { useShortlist } from '../context/ShortlistContext';
+import { useToast } from '../context/ToastContext';
 import { formatINR, formatPropertyType, getTodayISO } from '../utils/formatters';
 
 const FALLBACK_IMAGE =
@@ -23,9 +24,12 @@ const FALLBACK_IMAGE =
 export default function PropertyDetailPage() {
   const { id } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
   const { isSaved, toggleSave, pendingIds } = useShortlist();
+  const { showToast } = useToast();
 
+  const enquiryPanelRef = useRef(null);
   const [property, setProperty] = useState(null);
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -72,9 +76,9 @@ export default function PropertyDetailPage() {
   if (isLoading) {
     return (
       <main className="container page-section">
-        <div className="skeleton" style={{ height: 380, marginBottom: 20 }} />
-        <div className="skeleton" style={{ height: 28, width: '50%', marginBottom: 12 }} />
-        <div className="skeleton" style={{ height: 18, width: '30%' }} />
+        <div className="skeleton" style={{ height: 280, marginBottom: 20 }} />
+        <div className="skeleton" style={{ height: 28, width: '60%', marginBottom: 12 }} />
+        <div className="skeleton" style={{ height: 18, width: '40%' }} />
       </main>
     );
   }
@@ -83,7 +87,7 @@ export default function PropertyDetailPage() {
     return (
       <main className="container page-section">
         <div className="surface-card center-state">
-          <h1 style={{ fontSize: 22 }}>Property unavailable</h1>
+          <h1>Property unavailable</h1>
           <p style={{ margin: 0, color: 'var(--color-ink-secondary)' }}>
             {fetchError || 'This listing could not be found.'}
           </p>
@@ -100,6 +104,33 @@ export default function PropertyDetailPage() {
     property.images && property.images.length > 0 ? property.images : [FALLBACK_IMAGE];
   const saved = isSaved(property._id);
   const isTogglingSave = pendingIds.has(property._id);
+
+  const handleToggleShortlist = async () => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: location } });
+      return;
+    }
+    try {
+      const result = await toggleSave(property._id);
+      if (result?.saved) showToast('Saved to shortlist');
+      else if (result?.saved === false) showToast('Removed from shortlist', 'info');
+    } catch (err) {
+      showToast(err.message || 'Could not update shortlist', 'error');
+    }
+  };
+
+  const handleSwipeScroll = (e) => {
+    const track = e.currentTarget;
+    if (!track.clientWidth) return;
+    const idx = Math.round(track.scrollLeft / track.clientWidth);
+    if (idx !== activeImageIdx) {
+      setActiveImageIdx(Math.min(images.length - 1, Math.max(0, idx)));
+    }
+  };
+
+  const scrollToEnquiry = () => {
+    enquiryPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const validateForm = () => {
     const errors = {};
@@ -135,6 +166,9 @@ export default function PropertyDetailPage() {
       setSubmittedEnquiry(res.data);
       setMessage('');
       setPreferredVisitDate('');
+      showToast(
+        requestType === 'visit_request' ? 'Visit request sent' : 'Enquiry sent'
+      );
     } catch (err) {
       setSubmitError(err.message || 'Could not submit your request');
     } finally {
@@ -143,361 +177,449 @@ export default function PropertyDetailPage() {
   };
 
   return (
-    <main className="container page-section">
-      <div style={{ marginBottom: 18 }}>
-        <Link
-          to="/"
-          className="btn btn-ghost btn-sm"
-          style={{ paddingLeft: 0 }}
-        >
-          <ArrowLeftIcon size={16} />
-          Back to all properties
-        </Link>
-      </div>
-
-      <div className="detail-layout">
-        <div>
-          <div className="gallery-main">
-            <img
-              src={images[activeImageIdx] || FALLBACK_IMAGE}
-              alt={`${property.title} photo ${activeImageIdx + 1}`}
-              onError={(e) => {
-                e.currentTarget.src = FALLBACK_IMAGE;
-              }}
-            />
-          </div>
-
-          {images.length > 1 && (
-            <div className="gallery-thumbs">
-              {images.map((url, idx) => (
-                <button
-                  key={`${url}-${idx}`}
-                  type="button"
-                  className={`gallery-thumb ${idx === activeImageIdx ? 'active' : ''}`}
-                  onClick={() => setActiveImageIdx(idx)}
-                  aria-label={`View photo ${idx + 1}`}
-                >
-                  <img
-                    src={url}
-                    alt={`Thumbnail ${idx + 1}`}
-                    onError={(e) => {
-                      e.currentTarget.src = FALLBACK_IMAGE;
-                    }}
-                  />
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div
-            className="surface-card"
-            style={{ padding: 24, marginTop: 24, display: 'grid', gap: 20 }}
-          >
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-              <span className="badge badge-neutral">
-                {formatPropertyType(property.propertyType)}
-              </span>
-              {(user?.role === 'owner' || user?.role === 'admin') && (
-                <span className={`badge badge-${property.approvalStatus}`}>
-                  {property.approvalStatus}
-                </span>
-              )}
-              {!property.isAvailable && (
-                <span className="badge badge-rejected">Currently Unavailable</span>
-              )}
-            </div>
-
-            <div>
-              <h1 style={{ fontSize: 'clamp(22px, 2.5vw, 28px)', marginBottom: 8 }}>
-                {property.title}
-              </h1>
-              <div className="property-card-loc" style={{ fontSize: 14 }}>
-                <MapPinIcon size={16} />
-                <span>
-                  {property.location?.address}, {property.location?.area},{' '}
-                  {property.location?.city} — {property.location?.pincode}
-                </span>
-              </div>
-            </div>
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-                gap: 12,
-                padding: 16,
-                borderRadius: 'var(--radius-sm)',
-                background: 'var(--color-surface-subtle)',
-              }}
-            >
-              <div>
-                <div style={{ fontSize: 12, color: 'var(--color-ink-muted)' }}>Monthly Rent</div>
-                <div className="tabular-nums" style={{ fontWeight: 700, fontSize: 17 }}>
-                  {formatINR(property.rent)}
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: 12, color: 'var(--color-ink-muted)' }}>Security Deposit</div>
-                <div className="tabular-nums" style={{ fontWeight: 600, fontSize: 16 }}>
-                  {formatINR(property.deposit)}
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: 12, color: 'var(--color-ink-muted)' }}>Configuration</div>
-                <div className="spec-item tabular-nums" style={{ fontWeight: 600 }}>
-                  <BedIcon size={15} />
-                  {property.bedrooms === 0 ? 'Studio' : `${property.bedrooms} BHK`}
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: 12, color: 'var(--color-ink-muted)' }}>Bathrooms</div>
-                <div className="spec-item tabular-nums" style={{ fontWeight: 600 }}>
-                  <BathIcon size={15} />
-                  {property.bathrooms}
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: 12, color: 'var(--color-ink-muted)' }}>Area</div>
-                <div className="spec-item tabular-nums" style={{ fontWeight: 600 }}>
-                  <AreaIcon size={15} />
-                  {property.areaSqFt} sq.ft
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h2 style={{ fontSize: 17, marginBottom: 8 }}>About this home</h2>
-              <p
-                style={{
-                  margin: 0,
-                  color: 'var(--color-ink-secondary)',
-                  whiteSpace: 'pre-line',
-                }}
-              >
-                {property.description}
-              </p>
-            </div>
-
-            {property.amenities && property.amenities.length > 0 && (
-              <div>
-                <h2 style={{ fontSize: 17, marginBottom: 10 }}>Amenities</h2>
-                <div className="pill-strip">
-                  {property.amenities.map((item) => (
-                    <span key={item} className="badge badge-neutral" style={{ padding: '5px 11px' }}>
-                      {item}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {property.owner && (
-              <div
-                style={{
-                  paddingTop: 16,
-                  borderTop: '1px solid var(--color-border)',
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  justifyContent: 'space-between',
-                  gap: 10,
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: 12, color: 'var(--color-ink-muted)' }}>Listed by</div>
-                  <div style={{ fontWeight: 600 }}>{property.owner.name}</div>
-                </div>
-                <div style={{ fontSize: 13.5, color: 'var(--color-ink-secondary)' }}>
-                  {property.owner.email}
-                  {property.owner.phone ? ` · ${property.owner.phone}` : ''}
-                </div>
-              </div>
-            )}
-          </div>
+    <>
+      <main className="container page-section page-section-with-sticky-bar">
+        <div style={{ marginBottom: 14 }}>
+          <Link to="/" className="btn btn-ghost btn-sm" style={{ paddingLeft: 0 }}>
+            <ArrowLeftIcon size={16} />
+            Back to all properties
+          </Link>
         </div>
 
-        <aside className="sticky-sidebar">
-          <div className="surface-card" style={{ padding: 22, display: 'grid', gap: 16 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="detail-layout">
+          <div style={{ minWidth: 0 }}>
+            {/* Mobile Swipeable Gallery (< 960px) */}
+            <div className="gallery-swipe-wrapper">
+              <div
+                className="gallery-swipe-track"
+                onScroll={handleSwipeScroll}
+                aria-label="Property photos"
+              >
+                {images.map((url, idx) => (
+                  <div key={`${url}-${idx}`} className="gallery-swipe-slide">
+                    <img
+                      src={url}
+                      alt={`${property.title} photo ${idx + 1}`}
+                      onError={(e) => {
+                        e.currentTarget.src = FALLBACK_IMAGE;
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+              <span className="gallery-counter tabular-nums">
+                {activeImageIdx + 1} / {images.length}
+              </span>
+            </div>
+
+            {/* Desktop Gallery (>= 960px) */}
+            <div className="gallery-desktop-main">
+              <img
+                src={images[activeImageIdx] || FALLBACK_IMAGE}
+                alt={`${property.title} photo ${activeImageIdx + 1}`}
+                onError={(e) => {
+                  e.currentTarget.src = FALLBACK_IMAGE;
+                }}
+              />
+            </div>
+
+            {images.length > 1 && (
+              <div className="gallery-thumbs">
+                {images.map((url, idx) => (
+                  <button
+                    key={`${url}-${idx}`}
+                    type="button"
+                    className={`gallery-thumb ${idx === activeImageIdx ? 'active' : ''}`}
+                    onClick={() => setActiveImageIdx(idx)}
+                    aria-label={`View photo ${idx + 1}`}
+                  >
+                    <img
+                      src={url}
+                      alt={`Thumbnail ${idx + 1}`}
+                      onError={(e) => {
+                        e.currentTarget.src = FALLBACK_IMAGE;
+                      }}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div
+              className="surface-card"
+              style={{ padding: 20, marginTop: 20, display: 'grid', gap: 18 }}
+            >
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                <span className="badge badge-neutral">
+                  {formatPropertyType(property.propertyType)}
+                </span>
+                {(user?.role === 'owner' || user?.role === 'admin') && (
+                  <span
+                    className={`badge badge-${property.approvalStatus}`}
+                    style={{ textTransform: 'capitalize' }}
+                  >
+                    {property.approvalStatus}
+                  </span>
+                )}
+                {!property.isAvailable && (
+                  <span className="badge badge-rejected">Currently Unavailable</span>
+                )}
+              </div>
+
               <div>
-                <div className="tabular-nums" style={{ fontSize: 22, fontWeight: 700 }}>
+                <div
+                  className="tabular-nums"
+                  style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}
+                >
                   {formatINR(property.rent)}
-                  <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--color-ink-muted)' }}>
+                  <span
+                    style={{
+                      fontSize: 13.5,
+                      fontWeight: 400,
+                      color: 'var(--color-ink-muted)',
+                    }}
+                  >
                     /mo
                   </span>
                 </div>
-                <div style={{ fontSize: 12.5, color: 'var(--color-ink-muted)' }}>
-                  Deposit: {formatINR(property.deposit)}
-                </div>
-              </div>
-
-              {(!isAuthenticated || user?.role === 'tenant') && (
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  disabled={isTogglingSave}
-                  onClick={() => {
-                    if (!isAuthenticated) return;
-                    toggleSave(property._id);
-                  }}
-                  style={
-                    saved
-                      ? { borderColor: 'var(--color-danger-text)', color: 'var(--color-danger-text)' }
-                      : undefined
-                  }
-                >
-                  <HeartIcon size={15} filled={saved} />
-                  {saved ? 'Saved' : 'Save'}
-                </button>
-              )}
-            </div>
-
-            {!isAuthenticated ? (
-              <div style={{ display: 'grid', gap: 12 }}>
-                <p style={{ margin: 0, fontSize: 14, color: 'var(--color-ink-secondary)' }}>
-                  Sign in as a tenant to shortlist this home, send an enquiry, or schedule a visit.
-                </p>
-                <Link
-                  to="/login"
-                  state={{ from: location }}
-                  className="btn btn-primary btn-full"
-                >
-                  Sign In to Enquire
-                </Link>
-              </div>
-            ) : user.role !== 'tenant' ? (
-              <div
-                style={{
-                  padding: 14,
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'var(--color-surface-subtle)',
-                  fontSize: 13.5,
-                  color: 'var(--color-ink-secondary)',
-                }}
-              >
-                Signed in as <strong style={{ textTransform: 'capitalize' }}>{user.role}</strong>.
-                Listing status: <strong style={{ textTransform: 'capitalize' }}>{property.approvalStatus}</strong>.
-              </div>
-            ) : submittedEnquiry ? (
-              <div className="alert alert-success" style={{ flexDirection: 'column', gap: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}>
-                  <CheckIcon size={16} />
-                  <span>
-                    {submittedEnquiry.type === 'visit_request'
-                      ? 'Visit request sent!'
-                      : 'Enquiry sent!'}
+                <h1 style={{ marginBottom: 8 }}>{property.title}</h1>
+                <div className="property-card-loc" style={{ fontSize: 14 }}>
+                  <MapPinIcon size={16} />
+                  <span className="wrap-anywhere">
+                    {property.location?.address}, {property.location?.area},{' '}
+                    {property.location?.city} — {property.location?.pincode}
                   </span>
                 </div>
-                <p style={{ margin: 0, fontSize: 13 }}>
-                  The owner has received your request. Track their response in your tenant dashboard.
+              </div>
+
+              <div className="detail-specs-grid">
+                <div className="detail-spec-tile">
+                  <div style={{ fontSize: 12, color: 'var(--color-ink-muted)' }}>
+                    Bedrooms
+                  </div>
+                  <div className="spec-item tabular-nums" style={{ fontWeight: 600, marginTop: 2 }}>
+                    <BedIcon size={15} />
+                    {property.bedrooms === 0 ? 'Studio' : `${property.bedrooms} BHK`}
+                  </div>
+                </div>
+                <div className="detail-spec-tile">
+                  <div style={{ fontSize: 12, color: 'var(--color-ink-muted)' }}>
+                    Bathrooms
+                  </div>
+                  <div className="spec-item tabular-nums" style={{ fontWeight: 600, marginTop: 2 }}>
+                    <BathIcon size={15} />
+                    {property.bathrooms}
+                  </div>
+                </div>
+                <div className="detail-spec-tile">
+                  <div style={{ fontSize: 12, color: 'var(--color-ink-muted)' }}>
+                    Carpet Area
+                  </div>
+                  <div className="spec-item tabular-nums" style={{ fontWeight: 600, marginTop: 2 }}>
+                    <AreaIcon size={15} />
+                    {property.areaSqFt} sq.ft
+                  </div>
+                </div>
+                <div className="detail-spec-tile">
+                  <div style={{ fontSize: 12, color: 'var(--color-ink-muted)' }}>
+                    Deposit
+                  </div>
+                  <div className="tabular-nums" style={{ fontWeight: 600, marginTop: 2 }}>
+                    {formatINR(property.deposit)}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h2 style={{ marginBottom: 8 }}>About this home</h2>
+                <p
+                  className="wrap-anywhere"
+                  style={{
+                    margin: 0,
+                    color: 'var(--color-ink-secondary)',
+                    whiteSpace: 'pre-line',
+                  }}
+                >
+                  {property.description}
                 </p>
-                <div style={{ display: 'flex', gap: 8, width: '100%' }}>
-                  <Link to="/dashboard/tenant" className="btn btn-primary btn-sm btn-full">
-                    View My Enquiries
-                  </Link>
+              </div>
+
+              {property.amenities && property.amenities.length > 0 && (
+                <div>
+                  <h2 style={{ marginBottom: 10 }}>Amenities</h2>
+                  <div className="pill-strip">
+                    {property.amenities.map((item) => (
+                      <span
+                        key={item}
+                        className="badge badge-neutral"
+                        style={{ padding: '6px 12px' }}
+                      >
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {property.owner && (
+                <div
+                  style={{
+                    paddingTop: 14,
+                    borderTop: '1px solid var(--color-border)',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    justifyContent: 'space-between',
+                    gap: 10,
+                  }}
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 12, color: 'var(--color-ink-muted)' }}>
+                      Listed by
+                    </div>
+                    <div style={{ fontWeight: 600 }} className="wrap-anywhere">
+                      {property.owner.name}
+                    </div>
+                  </div>
+                  <div
+                    className="wrap-anywhere"
+                    style={{ fontSize: 13.5, color: 'var(--color-ink-secondary)' }}
+                  >
+                    {property.owner.email}
+                    {property.owner.phone ? ` · ${property.owner.phone}` : ''}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <aside id="enquiry-panel" ref={enquiryPanelRef} className="sticky-sidebar">
+            <div className="surface-card" style={{ padding: 20, display: 'grid', gap: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                <div>
+                  <div className="tabular-nums" style={{ fontSize: 22, fontWeight: 700 }}>
+                    {formatINR(property.rent)}
+                    <span
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 400,
+                        color: 'var(--color-ink-muted)',
+                      }}
+                    >
+                      /mo
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 12.5, color: 'var(--color-ink-muted)' }}>
+                    Deposit: {formatINR(property.deposit)}
+                  </div>
+                </div>
+
+                {(!isAuthenticated || user?.role === 'tenant') && (
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
-                    onClick={() => setSubmittedEnquiry(null)}
+                    disabled={isTogglingSave}
+                    onClick={handleToggleShortlist}
+                    style={
+                      saved
+                        ? {
+                            borderColor: 'var(--color-danger-text)',
+                            color: 'var(--color-danger-text)',
+                          }
+                        : undefined
+                    }
                   >
-                    New
+                    <HeartIcon size={15} filled={saved} />
+                    {saved ? 'Saved' : 'Save'}
                   </button>
-                </div>
+                )}
               </div>
-            ) : (
-              <form onSubmit={handleEnquirySubmit} style={{ display: 'grid', gap: 14 }} noValidate>
-                <div className="segmented-control" role="tablist">
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={requestType === 'enquiry'}
-                    className={`segmented-btn ${requestType === 'enquiry' ? 'active' : ''}`}
-                    onClick={() => {
-                      setRequestType('enquiry');
-                      setFormErrors({});
-                    }}
-                  >
-                    General Enquiry
-                  </button>
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={requestType === 'visit_request'}
-                    className={`segmented-btn ${requestType === 'visit_request' ? 'active' : ''}`}
-                    onClick={() => {
-                      setRequestType('visit_request');
-                      setFormErrors({});
-                    }}
-                  >
-                    Request Visit
-                  </button>
-                </div>
 
-                {requestType === 'visit_request' && (
+              {!isAuthenticated ? (
+                <div style={{ display: 'grid', gap: 12 }}>
+                  <p style={{ margin: 0, fontSize: 14, color: 'var(--color-ink-secondary)' }}>
+                    Sign in as a tenant to shortlist this home, send an enquiry, or schedule a visit.
+                  </p>
+                  <Link
+                    to="/login"
+                    state={{ from: location }}
+                    className="btn btn-primary btn-full"
+                  >
+                    Sign In to Enquire
+                  </Link>
+                </div>
+              ) : user.role !== 'tenant' ? (
+                <div className="callout-box">
+                  Signed in as <strong style={{ textTransform: 'capitalize' }}>{user.role}</strong>.
+                  Listing status:{' '}
+                  <strong style={{ textTransform: 'capitalize' }}>
+                    {property.approvalStatus}
+                  </strong>
+                  .
+                </div>
+              ) : submittedEnquiry ? (
+                <div className="alert alert-success" style={{ flexDirection: 'column', gap: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}>
+                    <CheckIcon size={16} />
+                    <span>
+                      {submittedEnquiry.type === 'visit_request'
+                        ? 'Visit request sent!'
+                        : 'Enquiry sent!'}
+                    </span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: 13 }}>
+                    The owner has received your request. Track their response in your tenant dashboard.
+                  </p>
+                  <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+                    <Link to="/dashboard/tenant" className="btn btn-primary btn-sm btn-full">
+                      View My Enquiries
+                    </Link>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setSubmittedEnquiry(null)}
+                    >
+                      New
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleEnquirySubmit} style={{ display: 'grid', gap: 14 }} noValidate>
+                  <div className="segmented-control" role="tablist">
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={requestType === 'enquiry'}
+                      className={`segmented-btn ${requestType === 'enquiry' ? 'active' : ''}`}
+                      onClick={() => {
+                        setRequestType('enquiry');
+                        setFormErrors({});
+                      }}
+                    >
+                      General Enquiry
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={requestType === 'visit_request'}
+                      className={`segmented-btn ${
+                        requestType === 'visit_request' ? 'active' : ''
+                      }`}
+                      onClick={() => {
+                        setRequestType('visit_request');
+                        setFormErrors({});
+                      }}
+                    >
+                      Request Visit
+                    </button>
+                  </div>
+
+                  {requestType === 'visit_request' && (
+                    <div className="field">
+                      <label className="field-label" htmlFor="visit-date">
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <CalendarIcon size={14} />
+                          Preferred Visit Date
+                        </span>
+                      </label>
+                      <input
+                        id="visit-date"
+                        type="date"
+                        min={getTodayISO()}
+                        className={`input ${formErrors.preferredVisitDate ? 'input-error' : ''}`}
+                        value={preferredVisitDate}
+                        onChange={(e) => setPreferredVisitDate(e.target.value)}
+                      />
+                      {formErrors.preferredVisitDate && (
+                        <span className="field-error">{formErrors.preferredVisitDate}</span>
+                      )}
+                    </div>
+                  )}
+
                   <div className="field">
-                    <label className="field-label" htmlFor="visit-date">
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                        <CalendarIcon size={14} />
-                        Preferred Visit Date
-                      </span>
+                    <label className="field-label" htmlFor="enquiry-message">
+                      Message to Owner
                     </label>
-                    <input
-                      id="visit-date"
-                      type="date"
-                      min={getTodayISO()}
-                      className={`input ${formErrors.preferredVisitDate ? 'input-error' : ''}`}
-                      value={preferredVisitDate}
-                      onChange={(e) => setPreferredVisitDate(e.target.value)}
+                    <textarea
+                      id="enquiry-message"
+                      rows={4}
+                      className={`textarea ${formErrors.message ? 'input-error' : ''}`}
+                      placeholder={
+                        requestType === 'visit_request'
+                          ? 'Share your preferred time slot and move-in timeline…'
+                          : 'Ask about lease terms, parking, or availability…'
+                      }
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
                     />
-                    {formErrors.preferredVisitDate && (
-                      <span className="field-error">{formErrors.preferredVisitDate}</span>
+                    {formErrors.message && (
+                      <span className="field-error">{formErrors.message}</span>
                     )}
                   </div>
-                )}
 
-                <div className="field">
-                  <label className="field-label" htmlFor="enquiry-message">
-                    Message to Owner
-                  </label>
-                  <textarea
-                    id="enquiry-message"
-                    rows={4}
-                    className={`textarea ${formErrors.message ? 'input-error' : ''}`}
-                    placeholder={
-                      requestType === 'visit_request'
-                        ? 'Share your preferred time slot and move-in timeline…'
-                        : 'Ask about lease terms, parking, or availability…'
-                    }
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                  />
-                  {formErrors.message && (
-                    <span className="field-error">{formErrors.message}</span>
+                  {submitError && (
+                    <div className="alert alert-error">
+                      <AlertCircleIcon size={16} />
+                      <span>{submitError}</span>
+                    </div>
                   )}
-                </div>
 
-                {submitError && (
-                  <div className="alert alert-error">
-                    <AlertCircleIcon size={16} />
-                    <span>{submitError}</span>
-                  </div>
-                )}
+                  <button
+                    type="submit"
+                    className="btn btn-primary btn-full"
+                    disabled={isSubmitting || !property.isAvailable}
+                  >
+                    {isSubmitting
+                      ? 'Sending…'
+                      : requestType === 'visit_request'
+                      ? 'Schedule Visit'
+                      : 'Send Enquiry'}
+                  </button>
+                </form>
+              )}
+            </div>
+          </aside>
+        </div>
+      </main>
 
-                <button
-                  type="submit"
-                  className="btn btn-primary btn-full"
-                  disabled={isSubmitting || !property.isAvailable}
-                >
-                  {isSubmitting
-                    ? 'Sending…'
-                    : requestType === 'visit_request'
-                    ? 'Schedule Visit'
-                    : 'Send Enquiry'}
-                </button>
-              </form>
-            )}
+      {/* Mobile Sticky Bottom Action Bar (< 960px) */}
+      <div className="mobile-sticky-bar">
+        <div>
+          <div className="tabular-nums" style={{ fontWeight: 700, fontSize: 17 }}>
+            {formatINR(property.rent)}
+            <span style={{ fontSize: 12.5, fontWeight: 400, color: 'var(--color-ink-muted)' }}>
+              /mo
+            </span>
           </div>
-        </aside>
+          <div style={{ fontSize: 12, color: 'var(--color-ink-muted)' }}>
+            {property.location?.area}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {(!isAuthenticated || user?.role === 'tenant') && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              aria-label={saved ? 'Remove from shortlist' : 'Save to shortlist'}
+              disabled={isTogglingSave}
+              onClick={handleToggleShortlist}
+              style={
+                saved
+                  ? {
+                      borderColor: 'var(--color-danger-text)',
+                      color: 'var(--color-danger-text)',
+                    }
+                  : undefined
+              }
+            >
+              <HeartIcon size={17} filled={saved} />
+            </button>
+          )}
+          <button type="button" className="btn btn-primary" onClick={scrollToEnquiry}>
+            Enquire / Visit
+          </button>
+        </div>
       </div>
-    </main>
+    </>
   );
 }

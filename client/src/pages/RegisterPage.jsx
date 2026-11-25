@@ -83,7 +83,11 @@ export default function RegisterPage() {
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 14 }} noValidate>
           <div className="field">
             <span className="field-label">I am joining as</span>
-            <div className="segmented-control" role="radiogroup" aria-label="Account role">
+            <div
+              className="segmented-control segmented-control-stack-xs"
+              role="radiogroup"
+              aria-label="Account role"
+            >
               <button
                 type="button"
                 className={`segmented-btn ${form.role === 'tenant' ? 'active' : ''}`}
