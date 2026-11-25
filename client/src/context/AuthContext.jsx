@@ -7,6 +7,7 @@ import {
 } from '../api/fetchClient';
 
 const AuthContext = createContext(null);
+const SESSION_HINT_KEY = 'renteasy_has_session';
 
 const DASHBOARD_PATHS = {
   tenant: '/dashboard/tenant',
@@ -25,6 +26,7 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     setOnAuthFailure(() => {
+      localStorage.removeItem(SESSION_HINT_KEY);
       setUser(null);
     });
     return () => setOnAuthFailure(null);
@@ -34,6 +36,11 @@ export function AuthProvider({ children }) {
     let cancelled = false;
 
     async function restoreSession() {
+      if (localStorage.getItem(SESSION_HINT_KEY) !== '1') {
+        setIsAuthLoading(false);
+        return;
+      }
+
       try {
         const refreshData = await authApi.refresh();
         if (refreshData?.accessToken) {
@@ -45,6 +52,7 @@ export function AuthProvider({ children }) {
         }
       } catch {
         clearAccessToken();
+        localStorage.removeItem(SESSION_HINT_KEY);
         if (!cancelled) {
           setUser(null);
         }
@@ -64,6 +72,7 @@ export function AuthProvider({ children }) {
   const login = useCallback(async (credentials) => {
     const data = await authApi.login(credentials);
     setAccessToken(data.accessToken);
+    localStorage.setItem(SESSION_HINT_KEY, '1');
     setUser(data.user);
     return data.user;
   }, []);
@@ -71,6 +80,7 @@ export function AuthProvider({ children }) {
   const register = useCallback(async (payload) => {
     const data = await authApi.register(payload);
     setAccessToken(data.accessToken);
+    localStorage.setItem(SESSION_HINT_KEY, '1');
     setUser(data.user);
     return data.user;
   }, []);
@@ -82,6 +92,7 @@ export function AuthProvider({ children }) {
       // Clear local session state even if network logout fails
     } finally {
       clearAccessToken();
+      localStorage.removeItem(SESSION_HINT_KEY);
       setUser(null);
     }
   }, []);

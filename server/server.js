@@ -17,12 +17,27 @@ const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 const app = express();
 app.set('trust proxy', 1);
 
+const normalizeOrigin = (url) => String(url || '').trim().replace(/\/+$/, '');
+
+const allowedOrigins = (
+  process.env.CLIENT_URL || 'http://localhost:5173,https://rent-easyy-002.vercel.app'
+)
+  .split(',')
+  .map(normalizeOrigin)
+  .filter(Boolean);
+
 // Core middleware
 app.use(express.json({ limit: '10kb' }));
 app.use(cookieParser());
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin(origin, callback) {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(normalizeOrigin(origin))) {
+        return callback(null, true);
+      }
+      return callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
     credentials: true,
   })
 );

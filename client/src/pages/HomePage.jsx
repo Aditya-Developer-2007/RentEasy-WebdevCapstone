@@ -66,6 +66,7 @@ export default function HomePage() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [reloadTick, setReloadTick] = useState(0);
 
   useEffect(() => {
     setSearchDraft(filters.search);
@@ -156,7 +157,7 @@ export default function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, [filters]);
+  }, [filters, reloadTick]);
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -231,18 +232,16 @@ export default function HomePage() {
         </div>
 
         <form className="search-bar-form" onSubmit={handleSearchSubmit}>
-          <div className="search-input-row">
-            <div className="search-input-wrap">
-              <SearchIcon size={17} className="search-input-icon" />
-              <input
-                type="text"
-                className="input search-input"
-                placeholder="Search locality, city, or title…"
-                value={searchDraft}
-                onChange={(e) => setSearchDraft(e.target.value)}
-              />
-            </div>
-            <button type="submit" className="btn btn-primary">
+          <div className="search-unified-box">
+            <SearchIcon size={17} className="search-unified-icon" />
+            <input
+              type="text"
+              className="search-unified-input"
+              placeholder="Search locality, city, or title..."
+              value={searchDraft}
+              onChange={(e) => setSearchDraft(e.target.value)}
+            />
+            <button type="submit" className="search-inline-btn">
               Search
             </button>
           </div>
@@ -662,9 +661,11 @@ export default function HomePage() {
       )}
 
       <div className="results-toolbar">
-        <p style={{ margin: 0, fontSize: 14, color: 'var(--color-ink-secondary)' }}>
+        <p style={{ margin: 0, fontSize: 13, color: 'var(--color-ink-muted)' }}>
           {isLoading
             ? 'Loading verified listings…'
+            : error
+            ? 'Unable to reach listing server'
             : `${pagination.total} ${pagination.total === 1 ? 'property' : 'properties'} available`}
         </p>
 
@@ -679,13 +680,6 @@ export default function HomePage() {
         )}
       </div>
 
-      {error && (
-        <div className="alert alert-error" style={{ marginBottom: 18 }}>
-          <AlertCircleIcon size={17} />
-          <span>{error}</span>
-        </div>
-      )}
-
       {isLoading ? (
         <div className="property-grid">
           {Array.from({ length: 6 }).map((_, idx) => (
@@ -698,6 +692,21 @@ export default function HomePage() {
               </div>
             </div>
           ))}
+        </div>
+      ) : error ? (
+        <div className="surface-card center-state">
+          <AlertCircleIcon size={28} />
+          <h2>Could not load properties — server may be waking up</h2>
+          <p style={{ margin: 0, color: 'var(--color-ink-secondary)', maxWidth: 420 }}>
+            {error}
+          </p>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => setReloadTick((t) => t + 1)}
+          >
+            Retry
+          </button>
         </div>
       ) : properties.length === 0 ? (
         <div className="surface-card center-state">
