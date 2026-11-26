@@ -54,6 +54,12 @@ export default function HomePage() {
   const filters = useMemo(() => parseFiltersFromParams(searchParams), [searchParams]);
 
   const [searchDraft, setSearchDraft] = useState(filters.search);
+  const [desktopDraft, setDesktopDraft] = useState({
+    area: filters.area,
+    city: filters.city,
+    minRent: filters.minRent,
+    maxRent: filters.maxRent,
+  });
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetDraft, setSheetDraft] = useState(filters);
 
@@ -71,6 +77,31 @@ export default function HomePage() {
   useEffect(() => {
     setSearchDraft(filters.search);
   }, [filters.search]);
+
+  useEffect(() => {
+    setDesktopDraft({
+      area: filters.area,
+      city: filters.city,
+      minRent: filters.minRent,
+      maxRent: filters.maxRent,
+    });
+  }, [filters.area, filters.city, filters.minRent, filters.maxRent]);
+
+  useEffect(() => {
+    const changed =
+      desktopDraft.area !== filters.area ||
+      desktopDraft.city !== filters.city ||
+      desktopDraft.minRent !== filters.minRent ||
+      desktopDraft.maxRent !== filters.maxRent;
+
+    if (!changed) return undefined;
+
+    const timer = setTimeout(() => {
+      updateUrlFilters(desktopDraft);
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [desktopDraft]);
 
   useEffect(() => {
     if (!sheetOpen) return undefined;
@@ -117,6 +148,26 @@ export default function HomePage() {
     let cancelled = false;
 
     async function loadProperties() {
+      if (
+        filters.minRent !== '' &&
+        filters.maxRent !== '' &&
+        Number(filters.minRent) > Number(filters.maxRent)
+      ) {
+        setIsLoading(false);
+        setError('Minimum rent cannot be greater than maximum rent.');
+        return;
+      }
+
+      if (
+        filters.minBedrooms !== '' &&
+        filters.maxBedrooms !== '' &&
+        Number(filters.minBedrooms) > Number(filters.maxBedrooms)
+      ) {
+        setIsLoading(false);
+        setError('Minimum bedrooms cannot be greater than maximum bedrooms.');
+        return;
+      }
+
       setIsLoading(true);
       setError('');
 
@@ -313,8 +364,10 @@ export default function HomePage() {
               type="text"
               className="input"
               placeholder="e.g., Dwarka, Saket"
-              value={filters.area}
-              onChange={(e) => updateUrlFilters({ area: e.target.value })}
+              value={desktopDraft.area}
+              onChange={(e) =>
+                setDesktopDraft((p) => ({ ...p, area: e.target.value }))
+              }
             />
           </div>
 
@@ -327,8 +380,10 @@ export default function HomePage() {
               type="text"
               className="input"
               placeholder="e.g., Delhi, Bengaluru"
-              value={filters.city}
-              onChange={(e) => updateUrlFilters({ city: e.target.value })}
+              value={desktopDraft.city}
+              onChange={(e) =>
+                setDesktopDraft((p) => ({ ...p, city: e.target.value }))
+              }
             />
           </div>
 
@@ -342,8 +397,10 @@ export default function HomePage() {
               min="0"
               className="input"
               placeholder="10000"
-              value={filters.minRent}
-              onChange={(e) => updateUrlFilters({ minRent: e.target.value })}
+              value={desktopDraft.minRent}
+              onChange={(e) =>
+                setDesktopDraft((p) => ({ ...p, minRent: e.target.value }))
+              }
             />
           </div>
 
@@ -357,8 +414,10 @@ export default function HomePage() {
               min="0"
               className="input"
               placeholder="80000"
-              value={filters.maxRent}
-              onChange={(e) => updateUrlFilters({ maxRent: e.target.value })}
+              value={desktopDraft.maxRent}
+              onChange={(e) =>
+                setDesktopDraft((p) => ({ ...p, maxRent: e.target.value }))
+              }
             />
           </div>
 

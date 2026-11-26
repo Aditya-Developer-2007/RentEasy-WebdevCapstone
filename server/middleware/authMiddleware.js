@@ -3,9 +3,6 @@ const User = require('../models/User');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
 
-/**
- * Verify JWT access token from Authorization header and attach req.user.
- */
 const protect = asyncHandler(async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
