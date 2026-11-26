@@ -1,5 +1,9 @@
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.PROD
+    ? 'https://renteasy-webdevcapstone.onrender.com/api'
+    : 'http://localhost:5000/api')
+).replace(/\/+$/, '');
 
 let accessToken = null;
 let refreshPromise = null;
