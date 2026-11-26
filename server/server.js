@@ -19,28 +19,34 @@ app.set('trust proxy', 1);
 
 const normalizeOrigin = (url) => String(url || '').trim().replace(/\/+$/, '');
 
-const allowedOrigins = (
-  process.env.CLIENT_URL || 'http://localhost:5173,https://rent-easyy-002.vercel.app'
-)
+const defaultOrigins = [
+  'http://localhost:5173',
+  'https://rent-easyy-002.vercel.app',
+];
+
+const envOrigins = (process.env.CLIENT_URL || '')
   .split(',')
   .map(normalizeOrigin)
   .filter(Boolean);
 
+const allowedOrigins = [...new Set([...defaultOrigins, ...envOrigins])];
+
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(normalizeOrigin(origin))) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  credentials: true,
+};
+
 // Core middleware
 app.use(express.json({ limit: '10kb' }));
 app.use(cookieParser());
-app.use(
-  cors({
-    origin(origin, callback) {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(normalizeOrigin(origin))) {
-        return callback(null, true);
-      }
-      return callback(new Error(`CORS blocked for origin: ${origin}`));
-    },
-    credentials: true,
-  })
-);
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 // Health check
 app.get('/api/health', (req, res) => {
